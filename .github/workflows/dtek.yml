@@ -46,28 +46,22 @@ jobs:
       - name: Publish to gh-pages
         run: |
           set -e
-
-          # Переконаймося, що результат реально створився
           test -f public/result.txt
 
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # (перший раз може не існувати — це ок)
           git fetch origin gh-pages || true
 
-          # Перемикаємось на gh-pages (або створюємо її)
           if git show-ref --verify --quiet refs/heads/gh-pages; then
             git switch gh-pages
           else
             git switch --orphan gh-pages
           fi
 
-          # Чистимо гілку і копіюємо контент
           rm -rf ./*
           cp -r public/* ./
 
           git add -A
           git commit -m "update result" || true
           git push -f origin gh-pages
-
