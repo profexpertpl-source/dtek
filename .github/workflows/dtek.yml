@@ -12,8 +12,10 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -28,15 +30,44 @@ jobs:
       - name: Fetch + build text
         run: python dtek_fetch.py
 
+      - name: Debug files
+        run: |
+          echo "PWD:"
+          pwd
+          echo "Repo root:"
+          ls -la
+          echo "Public dir:"
+          ls -la public || true
+          echo "Find result.txt:"
+          find . -maxdepth 4 -name "result.txt" -print || true
+          echo "Show public/result.txt (if exists):"
+          cat public/result.txt || true
+
       - name: Publish to gh-pages
         run: |
+          set -e
+
+          # Переконаймося, що результат реально створився
+          test -f public/result.txt
+
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
+          # (перший раз може не існувати — це ок)
           git fetch origin gh-pages || true
-          git switch --orphan gh-pages || git switch gh-pages
+
+          # Перемикаємось на gh-pages (або створюємо її)
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git switch gh-pages
+          else
+            git switch --orphan gh-pages
+          fi
+
+          # Чистимо гілку і копіюємо контент
           rm -rf ./*
           cp -r public/* ./
+
           git add -A
           git commit -m "update result" || true
           git push -f origin gh-pages
+
