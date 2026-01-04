@@ -32,35 +32,51 @@ jobs:
 
       - name: Debug files
         run: |
-          echo "PWD:"
-          pwd
           echo "Repo root:"
           ls -la
-          echo "Public dir:"
-          ls -la public || true
-          echo "Find result.txt:"
-          find . -maxdepth 4 -name "result.txt" -print || true
-          echo "Show public/result.txt (if exists):"
-          cat public/result.txt || true
+          echo "Show result.txt:"
+          cat result.txt || true
+          echo "Show result.json:"
+          cat result.json || true
 
       - name: Publish to gh-pages
         run: |
           set -e
-          test -f public/result.txt
+
+          # Переконаймося, що результат реально створився
+          test -f result.txt
 
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
+          # Перший раз може не бути — це ок
           git fetch origin gh-pages || true
 
+          # Перемикаємось на gh-pages або створюємо
           if git show-ref --verify --quiet refs/heads/gh-pages; then
             git switch gh-pages
           else
             git switch --orphan gh-pages
           fi
 
+          # Чистимо гілку і копіюємо файли
           rm -rf ./*
-          cp -r public/* ./
+          cp ../result.txt .
+          cp ../result.json . || true
+
+          # (не обов'язково, але красиво) index.html для швидкого перегляду
+          cat > index.html << 'HTML'
+          <!doctype html>
+          <html lang="uk">
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>DTEK — result</title>
+          <pre id="t">Loading…</pre>
+          <script>
+            fetch('./result.txt', {cache:'no-store'}).then(r=>r.text()).then(t=>document.getElementById('t').textContent=t);
+          </script>
+          </html>
+HTML
 
           git add -A
           git commit -m "update result" || true
